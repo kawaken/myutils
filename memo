@@ -1,0 +1,116 @@
+#!/bin/bash
+
+CONFIG_FILE="$HOME/.memo"
+
+function create_config() {
+  echo "Create config file"
+  read -p "Where memo dir: " memo_dir
+
+  if [ ! -d "$memo_dir" ]; then
+    mkdir -p $memo_dir
+  fi
+  echo "MEMO_DIR=$memo_dir" > $CONFIG_FILE
+
+  cd $memo_dir
+
+  git init .
+
+  if [ `git remote | wc -l` = "0" ]; then
+    read -p "git remote url: " url
+    if [ -n "$url" ]; then
+      git remote add origin $url
+    fi
+  fi
+}
+
+function read_config() {
+  if [ -e $HOME/.memo ]; then
+    source $CONFIG_FILE
+
+    if [ ! -d "$MEMO_DIR" ]; then
+      echo "invalid memo dir"
+      _config
+      read_config
+    fi
+  else
+    create_config
+  fi
+}
+
+function _help() {
+  cat <<HELP
+Usage: memo [sub_command] [options]
+
+  help:
+    show this message
+
+  create:
+    create a memo
+    this sub command is default
+
+  list:
+    show memo list
+
+  sync:
+    push and pull memo directory
+
+  config:
+    recreate config file
+HELP
+}
+
+function _create() {
+  now=`date +'%Y-%m-%d-%H:%M:%S'`
+  read -p "$now : " subject
+
+  if [ -n "$subject" ]; then
+    filename=$MEMO_DIR/${now}.md
+    cat <<TEXT > $filename
+subject: $subject
+date: $now
+----
+
+TEXT
+
+  fi
+
+  $EDITOR $filename
+}
+
+function _list() {
+  cd $MEMO_DIR
+  ls -1rt
+}
+
+function _sync() {
+  cd $MEMO_DIR
+  git pull origin master
+  git push origin master
+}
+
+function select_subcmd() {
+  local cmd
+  subcmd=$1
+
+  if [ -z "$subcmd" ]; then
+    subcmd='create'
+  fi
+
+  case "$subcmd" in
+    help|create|list|sync|config)
+      cmd="_${subcmd}";;
+    *)
+      cmd="_help"
+  esac
+  echo $cmd
+}
+
+function _config() {
+  rm -f $CONFIG_FILE
+  create_config
+}
+
+read_config
+cmd=`select_subcmd $@`
+$cmd
+

@@ -1,0 +1,90 @@
+#!/bin/sh
+# This script appends stdin or arguments to '.git/info/exclude'.
+
+
+if [ `git rev-parse --is-inside-work-tree` = 'false' ]; then
+  echo "Current directory is not git work tree"
+  exit 1
+fi
+
+# get git top directory
+git_top_dir=`git rev-parse --show-toplevel`
+exclude_file="${git_top_dir}/.git/info/exclude"
+
+function add_() {
+  for param in $@; do
+    if [ -f $param ]; then
+      fullpath=`readlink -f $param`
+      param=`echo $fullpath | sed -e "s:${git_top_dir}/::"`
+    elif [ -d $param ]; then
+      fullpath=`readlink -f $param`
+      param=`echo $fullpath | sed -e "s:${git_top_dir}/::" -e 's:/$::'`"/"
+    fi
+    echo "${param}" >> $exclude_file
+  done
+}
+
+function unset_() {
+  for param in $@; do
+    sed -i -e "\:^${param}\$:d" $exclude_file
+  done
+}
+
+function unset_all_() {
+  sed -i -e "/^[^#]/d" $exclude_file
+}
+
+function cat_() {
+  cat $exclude_file
+}
+
+function list_() {
+  sed -e "/^#/d" -e "/^$/d" $exclude_file
+}
+
+function edit_() {
+  ${EDITOR:-'/bin/vi'} $exclude_file
+}
+
+function help_() {
+cat <<-HELP_MESSAGE
+Usage: git exclude [options]
+
+Action
+    --add                 adds some new file/directory ...
+    --unset               removes some file/directory ...
+    --unset-all           removes all exclusions
+    -l, --list            list all exclusions
+    -e, --edit            opens an editor
+
+HELP_MESSAGE
+}
+
+if [ $# -lt 1 ]; then
+  help_
+  exit
+fi
+set -- "$@"
+case $1 in
+  --*)
+    func=`echo $1 | sed -e "s/^--//" -e "s/-/_/"`"_"
+    ;;
+  -l)
+    func='list_'
+    ;;
+  -e)
+    func='edit_'
+    ;;
+  *)
+    func='help_'
+    ;;
+esac
+shift
+
+if declare -f "$func" > /dev/null 2>&1; then
+  $func "$@"
+else
+  help_
+fi
+
+# vim: ft=sh

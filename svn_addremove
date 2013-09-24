@@ -1,0 +1,4 @@
+#!/bin/sh
+
+svn st $1 | awk '/^!/ {print $2}' | xargs svn remove
+svn st $1 | awk '/^\?/ {print $2}' | xargs svn add

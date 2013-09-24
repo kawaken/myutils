@@ -1,0 +1,5 @@
+#!/bin/sh
+
+awk '/^ *Host(Name)?/ { print $0 }' $HOME/.ssh/config
+
+# vim: ft=sh

@@ -1,0 +1,59 @@
+#!/bin/sh
+
+if [ $# -lt 1 ]; then
+  echo "Usage: $0 options"
+  exit
+fi
+
+if [ ! -f $HOME/.reposrc ]; then
+  read -p "Target server: " hostname
+  if [ -z "$hostname" ]; then
+    exit
+  fi
+  read -p "Set '$hostname' as default server? : [y/N] " default
+  if [ "$default" = "y" ]; then
+    echo "$hostname" > $HOME/.reposrc
+  fi
+else
+  hostname=`cat $HOME/.reposrc`
+fi
+
+function _set_repos_name() {
+  if [ $# -lt 2 ]; then
+    read -p "Repository name: " repos_name
+  fi
+  if [ -z ${repos_name-''} ]; then
+    echo "Do nothing."
+    exit
+  fi
+}
+
+function list() {
+  echo "Repositories in $hostname"
+  echo "==================="
+  ssh $hostname "cd repos; ls"
+}
+
+function init() {
+  _set_repos_name $@
+
+  echo "Init repository: $repos_name at $hostname"
+  ssh $hostname "mkdir -p repos; cd repos; git init --bare ${repos_name}.git"
+}
+
+function clone() {
+  list
+  echo ""
+  _set_repos_name $@
+
+  cd $PROJECT_DIR
+  echo "Clone repository: $repos_name from $hostname"
+  git clone $hostname:repos/${repos_name}.git
+}
+
+command=$1
+shift
+
+$command $@
+
+# vim: ft=sh
