@@ -1,0 +1,16 @@
+#!/bin/bash
+
+if [ ! -e $HOME/.fetchmail.pid ]; then
+  fetchmail
+  exit
+fi
+
+pid=`head -1 $HOME/.fetchmail.pid`
+if [ ! -x /proc/$pid ]; then
+  fetchmail
+  exit
+fi
+
+if [ "$1" = "-v" ]; then
+  echo "fetchmail started already"
+fi
