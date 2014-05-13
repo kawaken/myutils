@@ -1,0 +1,14 @@
+#!/bin/bash
+
+URL="http://www.zsh.org/pub/zsh.tar.gz"
+
+mkdir -p $HOME/local/src/zsh
+cd $HOME/local/src/zsh
+
+wget $URL
+
+tar zxf zsh.tar.gz
+cd `find -mindepth 1 -maxdepth 1 -type d`
+
+./configure && make && sudo make install
+
